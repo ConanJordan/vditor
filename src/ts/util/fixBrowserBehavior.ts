@@ -1254,6 +1254,24 @@ export const paste = async (vditor: IVditor, event: (ClipboardEvent | DragEvent)
 }) => {
     if (vditor[vditor.currentMode].element.getAttribute("contenteditable") !== "true") {
         return;
+  if (vditor[vditor.currentMode].element.getAttribute("contenteditable") !== "true") {
+    return;
+  }
+  event.stopPropagation();
+  event.preventDefault();
+  let textHTML;
+  let textPlain;
+  let files;
+  
+  if ("clipboardData" in event) {
+    textHTML = event.clipboardData.getData("text/html");
+    textPlain = event.clipboardData.getData("text/plain");
+    files = event.clipboardData.files;
+  } else {
+    textHTML = event.dataTransfer.getData("text/html");
+    textPlain = event.dataTransfer.getData("text/plain");
+    if (event.dataTransfer.types.includes("Files")) {
+      files = event.dataTransfer.items;
     }
     event.stopPropagation();
     event.preventDefault();
@@ -1457,6 +1475,7 @@ export const paste = async (vditor: IVditor, event: (ClipboardEvent | DragEvent)
             vditor.outline.render(vditor);
         }
     }
+<<<<<<< HEAD
     if (vditor.currentMode !== "sv") {
         const blockElement = hasClosestBlock(getEditorRange(vditor).startContainer);
         if (blockElement) {
@@ -1477,6 +1496,71 @@ export const paste = async (vditor: IVditor, event: (ClipboardEvent | DragEvent)
             .forEach((item: HTMLElement) => {
                 processCodeRender(item, vditor);
             });
+  } else if (code) {
+    callback.pasteCode(code);
+  } else {
+    if (textHTML.trim() !== "") {
+      const tempElement = document.createElement("div");
+      tempElement.innerHTML = textHTML;
+      tempElement.querySelectorAll("[style]").forEach((e) => {
+        e.removeAttribute("style");
+      });
+      tempElement.querySelectorAll(".vditor-copy").forEach((e) => {
+        e.remove();
+      });
+      if (vditor.currentMode === "ir") {
+        renderers.HTML2VditorIRDOM = {renderLinkDest};
+        vditor.lute.SetJSRenderers({renderers});
+        insertHTML(vditor.lute.HTML2VditorIRDOM(tempElement.innerHTML), vditor);
+      } else if (vditor.currentMode === "wysiwyg") {
+        renderers.HTML2VditorDOM = {renderLinkDest};
+        vditor.lute.SetJSRenderers({renderers});
+        insertHTML(vditor.lute.HTML2VditorDOM(tempElement.innerHTML), vditor);
+      } else {
+        renderers.Md2VditorSVDOM = {renderLinkDest};
+        vditor.lute.SetJSRenderers({renderers});
+        processPaste(vditor, vditor.lute.HTML2Md(tempElement.innerHTML).trimRight());
+      }
+      vditor.outline.render(vditor);
+    } else if (files.length > 0 && (vditor.options.upload.url || vditor.options.upload.handler)) {
+      await uploadFiles(vditor, files);
+    } else if (files.length > 0 && (!vditor.options.upload.url || !vditor.options.upload.handler)) {
+      var fileReader = new FileReader();
+      var file: File;
+      if ("clipboardData" in event) {
+        files = event.clipboardData.files;
+        file = files[0];
+      } else {
+        if (event.dataTransfer.types.includes("Files")) {
+          files = event.dataTransfer.items;
+          file = files[0].getAsFile();
+        }
+      }
+      fileReader.readAsDataURL(file);
+      fileReader.onload = function() {
+        // Get the base64 format content of target file.
+        var result = fileReader.result;
+        //console.log("This is an image.", result);
+        // Image in Markdown:![title or file name](dataurl)
+        // Put it in a newline.
+        var png = "\r![" + file.name + "](" + result.toString() + ")\r";
+        insertHTML(vditor.lute.Md2VditorIRDOM(png), vditor);
+      }
+    } else if (textPlain.trim() !== "" && files.length === 0) {
+      if (vditor.currentMode === "ir") {
+        renderers.Md2VditorIRDOM = {renderLinkDest};
+        vditor.lute.SetJSRenderers({renderers});
+        insertHTML(vditor.lute.Md2VditorIRDOM(textPlain), vditor);
+      } else if (vditor.currentMode === "wysiwyg") {
+        renderers.Md2VditorDOM = {renderLinkDest};
+        vditor.lute.SetJSRenderers({renderers});
+        insertHTML(vditor.lute.Md2VditorDOM(textPlain), vditor);
+      } else {
+        renderers.Md2VditorSVDOM = {renderLinkDest};
+        vditor.lute.SetJSRenderers({renderers});
+        processPaste(vditor, textPlain);
+      }
+      vditor.outline.render(vditor);
     }
     vditor.wysiwyg.triggerRemoveComment(vditor);
     execAfterRender(vditor);
