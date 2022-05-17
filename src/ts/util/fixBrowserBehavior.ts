@@ -1475,7 +1475,7 @@ export const paste = async (vditor: IVditor, event: (ClipboardEvent | DragEvent)
             vditor.outline.render(vditor);
         }
     }
-<<<<<<< HEAD
+    
     if (vditor.currentMode !== "sv") {
         const blockElement = hasClosestBlock(getEditorRange(vditor).startContainer);
         if (blockElement) {
